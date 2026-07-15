@@ -111,18 +111,19 @@ separate personal "Motorpool" garage app, which lives in its own repo).
       (Add user, auto-confirm). Verified with mock data (live auth path needs a real browser
       — Supabase is off the sandbox egress allowlist).
 
-### M5 — Portfolio wrap
-- [ ] Case-study copy: problem → approach → solution → data-driven insight.
-- [ ] Screenshots (landing, wizard, result, dashboard).
-- [ ] Deployed URL; custom domain decision (jazzharrisstudio.com or subpath).
-- [ ] LinkedIn post draft.
-- [ ] Project title/description finalized (see below).
+### M5 — Portfolio wrap  ✅ DONE (owner decision open)
+- [x] Case-study copy: problem → approach → solution → data-driven insight (`CASE-STUDY.md`).
+- [x] Screenshots (landing, wizard, result, quote, dashboard, mobile) → `docs/screenshots/`.
+- [x] Deployed URL live on GitHub Pages (`jazz-h.github.io/vehicle-match/`); README refreshed.
+- [x] LinkedIn post draft (in `CASE-STUDY.md`).
+- [x] Project title/description finalized (in `CASE-STUDY.md` + README).
+- **Owner decision:** custom domain — subpath on `jazzharrisstudio.com`, a subdomain, or
+      keep the Pages URL (options laid out at the end of `CASE-STUDY.md`).
 
 ---
 
 ## Setup checklist (owner actions)
-- [ ] **Enable GitHub Pages:** repo → Settings → Pages → Deploy from branch → `main` / `/(root)`.
-      → live at `https://jazz-h.github.io/vehicle-match/`.
+- [x] **GitHub Pages enabled** — live at `https://jazz-h.github.io/vehicle-match/`.
 - [ ] **Supabase:** create project → run `schema.sql` in SQL editor → copy Project URL + anon key.
 - [ ] **Custom domain** (optional): point jazzharrisstudio.com (or a subpath) at Pages.
 - [ ] **Real vehicle images** (optional): currently body-type SVG silhouettes; drop photos into a
