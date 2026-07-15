@@ -457,8 +457,7 @@
       submitBtn.disabled = false;
       submitBtn.textContent = 'Request my quote';
       errEl.hidden = false;
-      var detail = (err && err.message) ? err.message : 'unknown error';
-      errEl.textContent = 'Something went wrong sending your request. Please try again. [' + detail + ']';
+      errEl.textContent = 'Something went wrong sending your request. Please try again.';
       if (window.console) console.warn('lead submit failed', err && err.message);
       errEl.focus();
     });
