@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Motorpool · Dealer Dashboard</title>
+<meta name="description" content="Vehicle Match — dealer analytics: sessions, leads, priorities and funnel.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#1b1f24">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='6'%20fill='%231b1f24'/%3E%3Cpath%20d='M16%205l9.5%205v12L16%2027l-9.5-5V10z'%20fill='%23d83a29'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --steel-900:#1b1f24; --steel-850:#22272d; --steel-800:#282e35; --steel-700:#343b43;
+    --paper:#ece9e0; --paper-dim:#e1ddd1;
+    --ink:#1a1d21; --ink-soft:#565b62; --ink-faint:#8a8e93;
+    --redline:#d83a29; --redline-deep:#b02c1d; --amber:#e0a012; --good:#3f9a5c;
+    --line-steel:rgba(255,255,255,.09); --line-steel-strong:rgba(255,255,255,.16);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{background:var(--steel-900);-webkit-text-size-adjust:100%;}
+  body{background:radial-gradient(120% 80% at 50% -10%, #23282f 0%, var(--steel-900) 55%) fixed;
+    color:var(--paper);font-family:"IBM Plex Sans",system-ui,sans-serif;min-height:100vh;
+    display:flex;flex-direction:column;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+  a{color:inherit;}
+
+  /* topbar */
+  .topbar{position:sticky;top:0;z-index:20;background:rgba(24,28,33,.85);
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line-steel);padding-top:env(safe-area-inset-top);}
+  .topbar-in{max-width:1160px;margin:0 auto;padding:13px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  .wordmark{font-family:"Saira Condensed",sans-serif;font-weight:800;text-transform:uppercase;letter-spacing:.11em;
+    font-size:.98rem;display:flex;align-items:center;gap:9px;color:var(--paper);text-decoration:none;}
+  .wordmark::before{content:"";width:14px;height:15px;background:var(--redline);
+    clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);flex:0 0 auto;}
+  .wordmark span{color:var(--ink-faint);font-weight:600;letter-spacing:.14em;font-size:.62rem;}
+  .topbar-right{display:flex;align-items:center;gap:16px;}
+  .topbar-link{font-family:"IBM Plex Mono",monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--ink-faint);text-decoration:none;}
+  .topbar-link:hover{color:var(--paper);}
+
+  main{flex:1;width:100%;max-width:1160px;margin:0 auto;padding:0 22px 60px;}
+
+  /* buttons */
+  .btn{font-family:"Saira Condensed",sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+    font-size:1rem;padding:13px 24px;border-radius:8px;border:1px solid transparent;cursor:pointer;
+    -webkit-tap-highlight-color:transparent;transition:filter .15s,transform .08s,border-color .15s;text-decoration:none;display:inline-block;}
+  .btn.primary{background:var(--redline);color:#fff;}
+  .btn.primary:hover{filter:brightness(1.08);}
+  .btn.primary:active{transform:scale(.98);}
+  .btn.ghost{background:transparent;color:var(--paper);border-color:var(--line-steel-strong);font-size:.82rem;padding:10px 16px;}
+  .btn.ghost:hover{border-color:var(--paper);}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+  .btn.block{width:100%;}
+  .btn:focus-visible{outline:2px solid var(--amber);outline-offset:2px;}
+
+  /* login */
+  .auth{max-width:400px;margin:clamp(40px,10vh,110px) auto 0;text-align:center;}
+  .auth .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:.64rem;letter-spacing:.22em;text-transform:uppercase;color:var(--amber);margin-bottom:16px;}
+  .auth h1{font-family:"Saira Condensed",sans-serif;font-weight:800;text-transform:uppercase;font-size:2.4rem;line-height:1;margin-bottom:10px;}
+  .auth p{color:#b7bcc2;font-size:.94rem;line-height:1.5;margin-bottom:26px;}
+  .auth form{text-align:left;background:var(--steel-850);border:1px solid var(--line-steel-strong);border-radius:14px;padding:22px 20px;}
+  .field{margin-bottom:14px;display:flex;flex-direction:column;}
+  .field label{font-family:"IBM Plex Mono",monospace;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:6px;}
+  .field input{font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:1rem;color:var(--paper);background:var(--steel-900);
+    border:1px solid var(--line-steel-strong);border-radius:9px;padding:12px 13px;min-height:46px;transition:border-color .15s,box-shadow .15s;}
+  .field input:focus{outline:none;border-color:var(--redline);box-shadow:0 0 0 3px rgba(216,58,41,.16);}
+  .auth .err{color:#f0917f;font-size:.84rem;margin:2px 0 12px;min-height:1em;font-weight:500;}
+  .auth .hint{color:var(--ink-faint);font-size:.72rem;line-height:1.4;margin-top:14px;text-align:center;}
+
+  /* dashboard header */
+  .dash-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;
+    padding:26px 0 22px;border-bottom:1px solid var(--line-steel);margin-bottom:24px;}
+  .dash-head .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;color:var(--amber);margin-bottom:8px;}
+  .dash-head h1{font-family:"Saira Condensed",sans-serif;font-weight:800;text-transform:uppercase;font-size:2.1rem;line-height:1;}
+  .dash-head .who{font-family:"IBM Plex Mono",monospace;font-size:.64rem;color:var(--ink-faint);margin-top:6px;letter-spacing:.04em;}
+  .dash-head .actions{display:flex;align-items:center;gap:10px;}
+
+  /* stat tiles */
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;}
+  .tile{background:var(--steel-850);border:1px solid var(--line-steel-strong);border-radius:12px;padding:18px 18px 16px;}
+  .tile .k{font-family:"IBM Plex Mono",monospace;font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);}
+  .tile .v{font-family:"Saira Condensed",sans-serif;font-weight:800;font-size:2.5rem;line-height:1;margin-top:10px;}
+  .tile .s{font-size:.76rem;color:var(--ink-faint);margin-top:6px;}
+  .tile .v .rev{color:var(--redline);}
+
+  /* charts */
+  .charts{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;}
+  .card{background:var(--steel-850);border:1px solid var(--line-steel-strong);border-radius:12px;padding:18px 18px 20px;}
+  .card h2{font-family:"Saira Condensed",sans-serif;font-weight:700;text-transform:uppercase;font-size:1.15rem;letter-spacing:.02em;}
+  .card .cap{font-family:"IBM Plex Mono",monospace;font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:2px 0 16px;}
+  .bars{display:flex;flex-direction:column;gap:11px;}
+  .bar-row{display:grid;grid-template-columns:104px 1fr 40px;align-items:center;gap:10px;}
+  .bar-row .lab{font-size:.82rem;color:#c8c4ba;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .bar-track{display:block;height:16px;background:var(--steel-800);border-radius:5px;overflow:hidden;}
+  .bar-fill{display:block;height:100%;background:var(--redline);border-radius:5px;min-width:3px;transition:width .5s cubic-bezier(.22,.61,.36,1);}
+  .bar-row .num{font-family:"Saira Condensed",sans-serif;font-weight:700;font-size:1rem;color:var(--paper);text-align:right;}
+  .funnel .bar-fill{background:linear-gradient(90deg,var(--redline),var(--redline-deep));}
+
+  /* leads table */
+  .leads-card{padding-bottom:8px;}
+  .table-wrap{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:.86rem;min-width:520px;}
+  th{font-family:"IBM Plex Mono",monospace;font-size:.56rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);
+    text-align:left;padding:10px 12px;border-bottom:1px solid var(--line-steel-strong);white-space:nowrap;}
+  td{padding:11px 12px;border-bottom:1px solid var(--line-steel);color:#d3cfc5;vertical-align:top;}
+  tr:last-child td{border-bottom:none;}
+  td.name{color:var(--paper);font-weight:600;}
+  td .pri{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:.6rem;letter-spacing:.04em;text-transform:uppercase;
+    color:#8a5a00;background:#fbf3df;border-radius:999px;padding:2px 7px;margin:0 3px 3px 0;}
+  td .when{font-family:"IBM Plex Mono",monospace;font-size:.72rem;color:var(--ink-faint);white-space:nowrap;}
+
+  .empty{color:var(--ink-faint);font-size:.9rem;padding:26px 4px;text-align:center;}
+  .loading{display:flex;align-items:center;justify-content:center;gap:14px;padding:90px 0;color:var(--ink-faint);
+    font-family:"IBM Plex Mono",monospace;font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;}
+  .spinner{width:34px;height:34px;border-radius:50%;border:3px solid var(--line-steel-strong);border-top-color:var(--redline);animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .banner{background:rgba(216,58,41,.1);border:1px solid rgba(216,58,41,.35);color:#f0917f;border-radius:10px;
+    padding:11px 15px;font-size:.85rem;margin-bottom:18px;}
+
+  @media (max-width:820px){ .tiles{grid-template-columns:1fr 1fr;} .charts{grid-template-columns:1fr;} }
+  @media (max-width:460px){ .tiles{grid-template-columns:1fr 1fr;} .bar-row{grid-template-columns:84px 1fr 34px;} }
+  @media (prefers-reduced-motion:reduce){ *{transition:none!important;} .spinner{animation-duration:0s;border-top-color:var(--redline);} }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-in">
+    <a class="wordmark" href="./">Motorpool <span>Dealer</span></a>
+    <div class="topbar-right" id="topbar-right">
+      <a class="topbar-link" href="./">&larr; Shopper app</a>
+    </div>
+  </div>
+</header>
+
+<main id="dash" aria-live="polite"><!-- rendered by dashboard.js --></main>
+
+<script src="data.js"></script>
+<script src="supabase.js"></script>
+<script src="dashboard.js"></script>
+</body>
+</html>

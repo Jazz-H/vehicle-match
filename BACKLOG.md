@@ -65,6 +65,11 @@ separate personal "Motorpool" garage app, which lives in its own repo).
   (focus trap, Esc/backdrop close, focus return, inline validation, success + error states,
   privacy note). Inserts to `vm_leads`. **Connected to Supabase** (project
   `umnuufbbhdfwvbcsnfpe`); demo-mode fallback remains if keys are ever removed.
+- ✅ **M4 — Dealer dashboard (code):** gated `dashboard.html` (Supabase email/password
+  login via `VM.auth`), 4 stat tiles, priority-popularity + session-funnel bar charts
+  (client-side aggregation), and a leads table. Discreet "Dealer" link in the shopper
+  topbar; views hardened to `security_invoker`. Owner still creates a dealer user in
+  Supabase Auth to sign in.
 
 ---
 
@@ -93,12 +98,18 @@ separate personal "Motorpool" garage app, which lives in its own repo).
       (Live end-to-end insert can't be exercised from the sandbox — Supabase is off the
       session's egress allowlist — so verify from the deployed site / a real browser.)
 
-### M4 — Dealer dashboard  ⟶ NEXT
-- [ ] Gated view (Supabase auth — magic link or simple login).
-- [ ] Stat tiles: total sessions, leads, conversion %, most-selected type.
-- [ ] Charts: priority popularity, step funnel (from `vm_events`).
-- [ ] Leads table (from `vm_leads`).
-- [ ] Keep it tight: 4 tiles + 2 charts + 1 table, one login.
+### M4 — Dealer dashboard  ✅ DONE (code)
+- [x] Gated view — `dashboard.html` + `dashboard.js`, Supabase email/password login
+      (`VM.auth` in `supabase.js`: password grant + token refresh + authenticated reads).
+- [x] Stat tiles: total sessions, leads, conversion %, most-selected type.
+- [x] Charts: priority popularity + step funnel (client-side aggregation of `vm_events`,
+      single-hue bars per dataviz guidance).
+- [x] Leads table (from `vm_leads`) with priority chips + timestamps.
+- [x] Kept tight: 4 tiles + 2 charts + 1 table, one login. Discreet "Dealer" link in the
+      shopper topbar. Views hardened to `security_invoker` in `schema.sql`.
+- **Owner action to use it:** create a dealer user in Supabase → Authentication → Users
+      (Add user, auto-confirm). Verified with mock data (live auth path needs a real browser
+      — Supabase is off the sandbox egress allowlist).
 
 ### M5 — Portfolio wrap
 - [ ] Case-study copy: problem → approach → solution → data-driven insight.
