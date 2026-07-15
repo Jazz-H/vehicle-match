@@ -5,6 +5,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Motorpool · Vehicle Match</title>
 <meta name="description" content="Find the vehicle that fits your life — answer a few questions and get matched, with the reasons why.">
+
+<!-- Theme + icons -->
+<meta name="theme-color" content="#1b1f24">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='6'%20fill='%231b1f24'/%3E%3Cpath%20d='M16%205l9.5%205v12L16%2027l-9.5-5V10z'%20fill='%23d83a29'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+
+<!-- Open Graph / social share -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Motorpool">
+<meta property="og:title" content="Vehicle Match — find the vehicle that fits your life">
+<meta property="og:description" content="Answer three quick questions and get matched to the right vehicle, with the reasons why.">
+<meta property="og:url" content="https://jazz-h.github.io/vehicle-match/">
+<meta property="og:image" content="https://jazz-h.github.io/vehicle-match/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Motorpool Vehicle Match — Find your match.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Vehicle Match — find the vehicle that fits your life">
+<meta name="twitter:description" content="Answer three quick questions and get matched to the right vehicle, with the reasons why.">
+<meta name="twitter:image" content="https://jazz-h.github.io/vehicle-match/og-image.png">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -99,7 +121,7 @@
   .field > label{display:block;font-family:"IBM Plex Mono",monospace;font-size:.62rem;letter-spacing:.14em;
     text-transform:uppercase;color:var(--ink-faint);margin-bottom:10px;}
   .seg{display:flex;flex-wrap:wrap;gap:8px;}
-  .seg button{flex:1 1 auto;min-width:88px;font-family:"IBM Plex Sans",system-ui,sans-serif;font-weight:600;font-size:.9rem;
+  .seg button{flex:1 1 auto;min-width:88px;min-height:44px;font-family:"IBM Plex Sans",system-ui,sans-serif;font-weight:600;font-size:.9rem;
     padding:12px 10px;border-radius:8px;border:1px solid var(--line-steel-strong);background:var(--steel-850);color:#c8c4ba;
     cursor:pointer;-webkit-tap-highlight-color:transparent;transition:.15s;}
   .seg button:hover{color:var(--paper);}
@@ -147,13 +169,49 @@
   .alt .altspec{color:var(--ink-soft);font-size:.84rem;margin-top:6px;}
   .res-foot{text-align:center;margin-top:30px;}
 
+  /* ---------- a11y helper ---------- */
+  .sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+    clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+
+  /* ---------- step entrance motion ---------- */
+  @keyframes vm-rise{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
+  .anim-rise{animation:vm-rise .34s cubic-bezier(.22,.61,.36,1) both;}
+
+  /* ---------- loading state (results compute) ---------- */
+  .loading{display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:18px;padding:clamp(60px,16vh,140px) 0;text-align:center;}
+  .spinner{width:44px;height:44px;border-radius:50%;border:3px solid var(--line-steel-strong);
+    border-top-color:var(--redline);animation:vm-spin .8s linear infinite;}
+  @keyframes vm-spin{to{transform:rotate(360deg);}}
+  .loading p{font-family:"IBM Plex Mono",monospace;font-size:.7rem;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--ink-faint);}
+
+  /* ---------- empty / relaxed-filter note ---------- */
+  .res-note{display:flex;align-items:center;gap:9px;justify-content:center;flex-wrap:wrap;
+    background:var(--steel-850);border:1px solid var(--line-steel-strong);border-radius:10px;
+    padding:11px 16px;max-width:none;width:fit-content;}
+  .res-note::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--amber);flex:0 0 auto;}
+  .res-note .widen{color:var(--paper);text-decoration:underline;text-underline-offset:2px;
+    background:none;border:0;cursor:pointer;font:inherit;font-family:"IBM Plex Mono",monospace;
+    padding:0;-webkit-tap-highlight-color:transparent;}
+  .res-note .widen:hover{color:var(--amber);}
+  .res-note .widen:focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:3px;}
+
   @media (max-width:620px){
     .pick-body{grid-template-columns:1fr;}
     .pick-visual{min-height:150px;}
     .alts{grid-template-columns:1fr;}
     .land .steps{gap:7px;}
   }
-  @media (prefers-reduced-motion:reduce){*{transition:none!important;}}
+  @media (max-width:440px){
+    .topbar-tag{display:none;}          /* keep the wordmark from wrapping on small phones */
+    .wordmark span{display:none;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none!important;}
+    .anim-rise{animation:none!important;}
+    .spinner{animation-duration:0s;border-top-color:var(--redline);}
+  }
 </style>
 </head>
 <body>
@@ -164,7 +222,8 @@
   </div>
 </header>
 
-<main id="app" aria-live="polite"><!-- rendered by app.js --></main>
+<main id="app"><!-- rendered by app.js --></main>
+<div id="vm-announce" class="sr-only" aria-live="polite" role="status"></div>
 
 <script src="data.js"></script>
 <script src="scoring.js"></script>
