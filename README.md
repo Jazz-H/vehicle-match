@@ -9,7 +9,8 @@ Built by **Jazz Harris Studio** under the **Motorpool** brand.
 
 🔗 **Live:** https://jazz-h.github.io/vehicle-match/
 &nbsp;·&nbsp; 🖥️ **Dealer dashboard:** `/dashboard.html` (gated)
-&nbsp;·&nbsp; 📄 **Case study:** [CASE-STUDY.md](CASE-STUDY.md)
+&nbsp;·&nbsp; 🖼️ **Case study page:** [`/case-study.html`](https://jazz-h.github.io/vehicle-match/case-study.html)
+&nbsp;·&nbsp; 📄 **Case study (text):** [CASE-STUDY.md](CASE-STUDY.md)
 
 ![Vehicle Match — results](docs/screenshots/03-results.png)
 
