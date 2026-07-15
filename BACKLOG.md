@@ -55,6 +55,12 @@ separate personal "Motorpool" garage app, which lives in its own repo).
   management + `aria-live` announcements, `aria-pressed`/`role=group`/`role=progressbar`,
   ≥44px tap targets, OG/Twitter + favicon + generated share image + PWA manifest.
   Verified end-to-end (desktop + mobile, Back preserves selections, no overflow).
+- ✅ **M3 — Lead capture (code):** `supabase.js` insert-only REST client (demo-mode
+  fallback until keys are added), `track()` wired to `vm_events` at every step + result +
+  lead, and an accessible post-result quote modal (focus trap, Esc/backdrop close, focus
+  return, inline validation, success + error states, privacy note). Inserts to `vm_leads`.
+  **Owner action still open:** create the Supabase project, run `schema.sql`, paste the
+  Project URL + anon key into `supabase.js` to switch from demo to live.
 
 ---
 
@@ -72,14 +78,16 @@ separate personal "Motorpool" garage app, which lives in its own repo).
       (`manifest.webmanifest`, icons 192/512/512-maskable/180).
 - [x] Back-button preserves prior selections (verified type + priorities survive Back).
 
-### M3 — Lead capture  ⟶ NEXT
-- [ ] `supabase.js` client (project URL + anon key).
-- [ ] Post-result **quote form** (name, email, vehicle interest) → insert `vm_leads`.
-- [ ] Wire the `track()` stub in `app.js` → insert `vm_events` at each step + result.
-- [ ] Form validation, success/thank-you + error states, basic privacy note.
-- **Blocked on:** create Supabase project → run `schema.sql` → add keys.
+### M3 — Lead capture  ✅ DONE (code) · ⚠ awaiting keys
+- [x] `supabase.js` client — insert-only REST wrapper (no SDK), demo-mode fallback.
+- [x] Post-result **quote form** (name, email, vehicle interest) → insert `vm_leads`.
+      Accessible modal: focus trap, Esc/backdrop close, focus return, `aria-modal`.
+- [x] Wire the `track()` stub in `app.js` → insert `vm_events` at each step + result + lead.
+- [x] Form validation, success/thank-you + error states, privacy note.
+- **Blocked on (owner):** create Supabase project → run `schema.sql` → paste keys into
+      `supabase.js` (`SUPABASE_URL`, `SUPABASE_ANON_KEY`). Until then it runs in demo mode.
 
-### M4 — Dealer dashboard
+### M4 — Dealer dashboard  ⟶ NEXT
 - [ ] Gated view (Supabase auth — magic link or simple login).
 - [ ] Stat tiles: total sessions, leads, conversion %, most-selected type.
 - [ ] Charts: priority popularity, step funnel (from `vm_events`).

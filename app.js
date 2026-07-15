@@ -47,7 +47,9 @@
       if (!s) { s = 's' + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem(k, s); }
       return s; } catch (e) { return 'anon'; }
   })();
-  function track(step, choice) { /* M4: VM.analytics.track(sessionId, step, choice) */ }
+  function track(step, choice) {
+    if (VM.db && VM.db.track) VM.db.track(sessionId, step, choice);
+  }
 
   // ---- body-type silhouettes (used for tile icons + result visuals) ----
   function silhouette(type) {
@@ -315,9 +317,150 @@
       render();
     });
     var q = document.getElementById('quote');
-    if (q) q.addEventListener('click', function () { alert('Lead capture form — coming in M3.'); });
+    if (q) q.addEventListener('click', function () {
+      openQuote(top.vehicle, alts.map(function (r) { return r.vehicle; }));
+    });
 
     applyFocus();
+  }
+
+  // ============ QUOTE FORM (M3 — lead capture) ============
+  var modalHost = document.getElementById('vm-modal');
+  var lastTrigger = null;   // element focus returns to on close
+
+  function emailValid(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+
+  function openQuote(topVehicle, altVehicles) {
+    lastTrigger = document.activeElement;
+    var picks = [topVehicle].concat(altVehicles || []);
+    var opts = picks.map(function (v, i) {
+      return '<option value="' + v.name + '"' + (i === 0 ? ' selected' : '') + '>' +
+        v.name + (i === 0 ? ' — your best match' : '') + '</option>';
+    }).join('') + '<option value="Not sure yet">Not sure yet</option>';
+
+    modalHost.innerHTML =
+      '<div class="modal-backdrop" id="qbackdrop">' +
+      '<div class="modal" role="dialog" aria-modal="true" aria-labelledby="qtitle" aria-describedby="qsub">' +
+      '<button class="modal-x" id="qclose" type="button" aria-label="Close">&times;</button>' +
+      '<div class="modal-head"><div class="ey">Personalized quote</div>' +
+      '<h3 id="qtitle">Get your ' + topVehicle.name + ' quote</h3>' +
+      '<p id="qsub" class="modal-sub">Tell us where to send it. A specialist follows up with pricing and availability — no obligation.</p></div>' +
+      '<form id="qform" novalidate>' +
+      field('q-name', 'Full name', '<input id="q-name" name="name" type="text" autocomplete="name" required maxlength="80" placeholder="Jordan Rivera">') +
+      field('q-email', 'Email', '<input id="q-email" name="email" type="email" autocomplete="email" inputmode="email" required maxlength="120" placeholder="you@email.com">') +
+      field('q-vehicle', 'Vehicle of interest',
+        '<div class="select-wrap"><select id="q-vehicle" name="vehicle_interest">' + opts + '</select></div>') +
+      '<p class="form-error" id="q-formerror" role="alert" hidden></p>' +
+      '<button class="btn primary block" id="qsubmit" type="submit">Request my quote</button>' +
+      '<p class="privacy">We only use your details to follow up on this request. No spam, no resale.</p>' +
+      '</form></div></div>';
+
+    var backdrop = document.getElementById('qbackdrop');
+    var form = document.getElementById('qform');
+    var closeBtn = document.getElementById('qclose');
+
+    function close() {
+      modalHost.innerHTML = '';
+      document.removeEventListener('keydown', onKey);
+      if (lastTrigger && lastTrigger.focus) lastTrigger.focus();
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') { close(); return; }
+      if (e.key === 'Tab') trapTab(e, backdrop);
+    }
+    document.addEventListener('keydown', onKey);
+    closeBtn.addEventListener('click', close);
+    backdrop.addEventListener('mousedown', function (e) { if (e.target === backdrop) close(); });
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      submitQuote(form, topVehicle, close);
+    });
+
+    // focus the first field
+    var first = document.getElementById('q-name');
+    if (first) first.focus();
+    announce('Quote form opened.');
+  }
+
+  function trapTab(e, container) {
+    var f = container.querySelectorAll('button, input, select, textarea, a[href]');
+    f = Array.prototype.filter.call(f, function (el) { return !el.disabled && el.offsetParent !== null; });
+    if (!f.length) return;
+    var first = f[0], last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+
+  function submitQuote(form, topVehicle, close) {
+    var nameEl = form.querySelector('#q-name');
+    var emailEl = form.querySelector('#q-email');
+    var vehEl = form.querySelector('#q-vehicle');
+    var errEl = form.querySelector('#q-formerror');
+    var name = nameEl.value.trim(), email = emailEl.value.trim();
+
+    // ---- validation ----
+    setFieldError(nameEl, !name ? 'Enter your name.' : '');
+    setFieldError(emailEl, !email ? 'Enter your email.' : (!emailValid(email) ? 'Enter a valid email.' : ''));
+    var firstBad = form.querySelector('[aria-invalid="true"]');
+    if (firstBad) { firstBad.focus(); return; }
+    errEl.hidden = true;
+
+    var submitBtn = form.querySelector('#qsubmit');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending…';
+
+    VM.db.createLead({
+      name: name, email: email,
+      vehicle_interest: vehEl ? vehEl.value : topVehicle.name,
+      priorities: state.priorities,
+      session_id: sessionId
+    }).then(function () {
+      track('lead', { vehicle: vehEl ? vehEl.value : topVehicle.name });
+      showQuoteSuccess(name, vehEl ? vehEl.value : topVehicle.name, close);
+    }).catch(function (err) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Request my quote';
+      errEl.hidden = false;
+      errEl.textContent = 'Something went wrong sending your request. Please try again.';
+      if (window.console) console.warn('lead submit failed', err && err.message);
+      errEl.focus();
+    });
+  }
+
+  function showQuoteSuccess(name, vehicle, close) {
+    var dialog = modalHost.querySelector('.modal');
+    if (!dialog) return;
+    var first = (name.split(' ')[0] || name);
+    dialog.innerHTML =
+      '<button class="modal-x" id="qclose2" type="button" aria-label="Close">&times;</button>' +
+      '<div class="quote-done">' +
+      '<div class="check" aria-hidden="true"><svg viewBox="0 0 52 52" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 27l8 8 16-18"/></svg></div>' +
+      '<h3 tabindex="-1" data-qdone>Request sent, ' + escapeHtml(first) + '.</h3>' +
+      '<p>A specialist will reach out about the <b>' + escapeHtml(vehicle) + '</b>. Watch your inbox.</p>' +
+      (VM.db.live ? '' : '<p class="demo-tag">Demo mode — add Supabase keys in <code>supabase.js</code> to store real leads.</p>') +
+      '<button class="btn ghost" id="qdoneclose" type="button">Done</button>' +
+      '</div>';
+    announce('Your quote request was sent. A specialist will follow up.');
+    var done = dialog.querySelector('[data-qdone]'); if (done) done.focus();
+    dialog.querySelector('#qclose2').addEventListener('click', close);
+    dialog.querySelector('#qdoneclose').addEventListener('click', close);
+  }
+
+  function field(id, label, control) {
+    return '<div class="form-field"><label for="' + id + '">' + label + '</label>' + control +
+      '<span class="field-error" id="' + id + '-err" role="alert"></span></div>';
+  }
+  function setFieldError(el, msg) {
+    var err = document.getElementById(el.id + '-err');
+    if (msg) { el.setAttribute('aria-invalid', 'true'); el.setAttribute('aria-describedby', el.id + '-err');
+      if (err) err.textContent = msg; }
+    else { el.removeAttribute('aria-invalid'); if (err) err.textContent = ''; }
+  }
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
   }
 
   function specCell(k, v) { return '<div class="s"><span class="k">' + k + '</span><span class="v">' + v + '</span></div>'; }

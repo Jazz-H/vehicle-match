@@ -197,6 +197,59 @@
   .res-note .widen:hover{color:var(--amber);}
   .res-note .widen:focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:3px;}
 
+  /* ---------- quote modal + form (M3) ---------- */
+  .modal-backdrop{position:fixed;inset:0;z-index:60;background:rgba(12,14,17,.62);
+    backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+    display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;
+    padding:max(20px,env(safe-area-inset-top)) 16px 40px;animation:vm-fade .2s ease both;}
+  @keyframes vm-fade{from{opacity:0;}to{opacity:1;}}
+  .modal{position:relative;width:100%;max-width:440px;margin-top:min(9vh,90px);
+    background:var(--paper);color:var(--ink);border:1px solid var(--paper-edge);border-radius:16px;
+    box-shadow:0 30px 70px -30px rgba(0,0,0,.8);padding:26px 24px 22px;
+    animation:vm-rise .28s cubic-bezier(.22,.61,.36,1) both;}
+  .modal-x{position:absolute;top:12px;right:12px;width:36px;height:36px;border:0;background:transparent;
+    color:var(--ink-soft);font-size:1.7rem;line-height:1;cursor:pointer;border-radius:8px;
+    -webkit-tap-highlight-color:transparent;}
+  .modal-x:hover{color:var(--ink);background:rgba(0,0,0,.05);}
+  .modal-x:focus-visible{outline:2px solid var(--redline);outline-offset:2px;}
+  .modal-head{margin-bottom:18px;padding-right:28px;}
+  .modal-head .ey{font-family:"IBM Plex Mono",monospace;font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;color:var(--redline-deep);}
+  .modal-head h3{font-family:"Saira Condensed",sans-serif;font-weight:800;text-transform:uppercase;
+    font-size:1.7rem;line-height:1;margin:6px 0 8px;}
+  .modal-sub{color:var(--ink-soft);font-size:.9rem;line-height:1.45;}
+
+  .form-field{margin-bottom:14px;display:flex;flex-direction:column;}
+  .form-field label{font-family:"IBM Plex Mono",monospace;font-size:.6rem;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--ink-soft);margin-bottom:6px;}
+  .form-field input,.form-field select{font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:1rem;
+    color:var(--ink);background:#fff;border:1px solid var(--line-strong);border-radius:9px;
+    padding:12px 13px;width:100%;min-height:46px;transition:border-color .15s,box-shadow .15s;}
+  .form-field input::placeholder{color:var(--ink-faint);}
+  .form-field input:focus,.form-field select:focus{outline:none;border-color:var(--redline);
+    box-shadow:0 0 0 3px rgba(216,58,41,.16);}
+  .form-field input[aria-invalid="true"]{border-color:var(--redline);}
+  .select-wrap{position:relative;}
+  .select-wrap select{appearance:none;-webkit-appearance:none;padding-right:38px;cursor:pointer;}
+  .select-wrap::after{content:"";position:absolute;right:15px;top:50%;transform:translateY(-30%) rotate(45deg);
+    width:8px;height:8px;border-right:2px solid var(--ink-soft);border-bottom:2px solid var(--ink-soft);pointer-events:none;}
+  .field-error{color:var(--redline-deep);font-size:.78rem;margin-top:5px;min-height:1em;font-weight:500;}
+  .form-error{color:var(--redline-deep);font-size:.85rem;margin:2px 0 12px;font-weight:600;}
+
+  .btn.block{width:100%;margin-top:6px;}
+  .privacy{color:var(--ink-faint);font-size:.72rem;line-height:1.4;text-align:center;margin-top:12px;}
+
+  .quote-done{text-align:center;padding:14px 4px 6px;}
+  .quote-done .check{width:58px;height:58px;margin:0 auto 14px;border-radius:50%;
+    background:rgba(216,58,41,.12);color:var(--redline);display:flex;align-items:center;justify-content:center;}
+  .quote-done .check svg{width:32px;height:32px;}
+  .quote-done h3{font-family:"Saira Condensed",sans-serif;font-weight:800;text-transform:uppercase;
+    font-size:1.6rem;line-height:1;margin-bottom:8px;outline:none;}
+  .quote-done p{color:var(--ink-soft);font-size:.92rem;line-height:1.5;max-width:34ch;margin:0 auto 8px;}
+  .quote-done .demo-tag{color:var(--ink-faint);font-size:.74rem;font-family:"IBM Plex Mono",monospace;margin-top:10px;}
+  .quote-done .demo-tag code{background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px;}
+  .quote-done .btn{margin-top:16px;color:var(--ink);border-color:var(--line-strong);}
+  .quote-done .btn:hover{border-color:var(--ink);}
+
   @media (max-width:620px){
     .pick-body{grid-template-columns:1fr;}
     .pick-visual{min-height:150px;}
@@ -209,7 +262,7 @@
   }
   @media (prefers-reduced-motion:reduce){
     *{transition:none!important;}
-    .anim-rise{animation:none!important;}
+    .anim-rise,.modal,.modal-backdrop{animation:none!important;}
     .spinner{animation-duration:0s;border-top-color:var(--redline);}
   }
 </style>
@@ -224,9 +277,11 @@
 
 <main id="app"><!-- rendered by app.js --></main>
 <div id="vm-announce" class="sr-only" aria-live="polite" role="status"></div>
+<div id="vm-modal"><!-- quote form modal, mounted on demand --></div>
 
 <script src="data.js"></script>
 <script src="scoring.js"></script>
+<script src="supabase.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
