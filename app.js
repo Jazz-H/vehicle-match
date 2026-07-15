@@ -3,16 +3,43 @@
 (function () {
   var VM = window.VM;
   var app = document.getElementById('app');
+  var announceEl = document.getElementById('vm-announce');
 
-  var state = {
-    screen: 'landing',   // landing | wizard | results
-    step: 0,             // 0 type · 1 priorities · 2 preferences
-    type: null,
-    priorities: [],      // ordered, max 3
-    prefs: { priceMax: 100000, seats: 2, drivetrain: 'any' }
-  };
+  function freshState() {
+    return {
+      screen: 'landing',   // landing | wizard | results
+      step: 0,             // 0 type · 1 priorities · 2 preferences
+      type: null,
+      priorities: [],      // ordered, max 3
+      prefs: { priceMax: 100000, seats: 2, drivetrain: 'any' },
+      resultsReady: false  // gates the brief loading state before results
+    };
+  }
+  var state = freshState();
 
   var STEP_LABELS = ['Vehicle type', 'Your priorities', 'Preferences'];
+
+  var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion:reduce)').matches);
+
+  // ---- focus + screen-reader plumbing (M2 a11y) ----
+  // focusIntent tells the next render where focus should land: the step
+  // heading on navigation, or a specific control after an in-step toggle
+  // (so keyboard users don't lose their place when the view re-renders).
+  var focusIntent = null;
+  var lastKey = null, animate = false;
+
+  function announce(msg) {
+    if (!announceEl || !msg) return;
+    announceEl.textContent = '';               // reset so identical text re-announces
+    announceEl.textContent = msg;
+  }
+  function applyFocus() {
+    if (!focusIntent) return;
+    var fi = focusIntent; focusIntent = null;
+    var el = fi.heading ? app.querySelector('[data-fh]')
+           : fi.sel ? app.querySelector(fi.sel) : null;
+    if (el && el.focus) el.focus();
+  }
 
   // ---- analytics stub (wired to Supabase in M4) ----
   var sessionId = (function () {
@@ -20,7 +47,9 @@
       if (!s) { s = 's' + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem(k, s); }
       return s; } catch (e) { return 'anon'; }
   })();
-  function track(step, choice) { /* M4: VM.analytics.track(sessionId, step, choice) */ }
+  function track(step, choice) {
+    if (VM.db && VM.db.track) VM.db.track(sessionId, step, choice);
+  }
 
   // ---- body-type silhouettes (used for tile icons + result visuals) ----
   function silhouette(type) {
@@ -50,6 +79,14 @@
 
   // ============ RENDER ============
   function render() {
+    // Animate only when the screen/step actually changes — not on the
+    // in-step re-renders triggered by toggling a tile or segment.
+    var key = state.screen === 'results'
+      ? 'results:' + (state.resultsReady ? 'ready' : 'load')
+      : state.screen + ':' + state.step;
+    animate = !reduceMotion && key !== lastKey;
+    lastKey = key;
+
     if (state.screen === 'landing') return renderLanding();
     if (state.screen === 'results') return renderResults();
     return renderWizard();
@@ -57,38 +94,46 @@
 
   function renderLanding() {
     app.innerHTML =
-      '<section class="land">' +
+      '<section class="land' + (animate ? ' anim-rise' : '') + '">' +
       '<div class="eyebrow">Interactive vehicle finder</div>' +
-      '<h1>Find your <span class="rev">match.</span></h1>' +
+      '<h1 tabindex="-1" data-fh>Find your <span class="rev">match.</span></h1>' +
       '<p>Answer three quick questions about how you drive and what matters — get matched to the right vehicle, with the reasons why.</p>' +
-      '<div class="steps"><span><b>1</b>&nbsp; Type</span><span><b>2</b>&nbsp; Priorities</span><span><b>3</b>&nbsp; Preferences</span><span><b>&#10003;</b>&nbsp; Your match</span></div>' +
+      '<div class="steps" aria-hidden="true"><span><b>1</b>&nbsp; Type</span><span><b>2</b>&nbsp; Priorities</span><span><b>3</b>&nbsp; Preferences</span><span><b>&#10003;</b>&nbsp; Your match</span></div>' +
       '<button class="btn primary" id="start">Start &rarr;</button>' +
       '</section>';
     document.getElementById('start').addEventListener('click', function () {
-      state.screen = 'wizard'; state.step = 0; render();
+      state.screen = 'wizard'; state.step = 0;
+      focusIntent = { heading: true };
+      announce('Step 1 of ' + STEP_LABELS.length + ': ' + STEP_LABELS[0]);
+      render();
     });
+    applyFocus();
   }
 
   function progress() {
-    var pct = ((state.step) / STEP_LABELS.length) * 100 + (100 / STEP_LABELS.length) * 0; // start of step
-    pct = (state.step / STEP_LABELS.length) * 100;
+    var pct = Math.round(((state.step + 1) / STEP_LABELS.length) * 100);
     return '<div class="prog"><div class="prog-top">' +
       '<span class="prog-step">Step ' + (state.step + 1) + ' / ' + STEP_LABELS.length + '</span>' +
       '<span class="prog-label">' + STEP_LABELS[state.step] + '</span></div>' +
-      '<div class="prog-bar"><div class="prog-fill" style="width:' + (((state.step + 1) / STEP_LABELS.length) * 100) + '%"></div></div></div>';
+      '<div class="prog-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" ' +
+      'aria-valuenow="' + pct + '" aria-label="Wizard progress, step ' + (state.step + 1) +
+      ' of ' + STEP_LABELS.length + '">' +
+      '<div class="prog-fill" style="width:' + pct + '%"></div></div></div>';
   }
 
   function renderWizard() {
     var content = [renderTypeStep, renderPriorityStep, renderPrefStep][state.step]();
     var canNext = stepValid();
     app.innerHTML = '<section class="wiz">' + progress() +
-      '<div class="q">' + content + '</div>' +
+      '<div class="q' + (animate ? ' anim-rise' : '') + '">' + content + '</div>' +
       '<div class="wiz-nav">' +
       '<button class="btn ghost" id="back">&larr; Back</button>' +
-      '<button class="btn primary" id="next"' + (canNext ? '' : ' disabled') + '>' +
+      '<button class="btn primary" id="next"' + (canNext ? '' : ' disabled') +
+      ' aria-disabled="' + (canNext ? 'false' : 'true') + '">' +
       (state.step === STEP_LABELS.length - 1 ? 'See my match &rarr;' : 'Next &rarr;') + '</button>' +
       '</div></section>';
     wireWizard();
+    applyFocus();
   }
 
   function stepValid() {
@@ -99,66 +144,86 @@
 
   function renderTypeStep() {
     var tiles = VM.TYPES.map(function (t) {
-      var on = state.type === t.key ? ' on' : '';
-      var ico = t.key === 'any' ? '' : '<div class="ico">' + silhouette(t.key) + '</div>';
-      return '<button class="tile' + on + '" data-type="' + t.key + '">' + ico +
+      var on = state.type === t.key;
+      var ico = t.key === 'any' ? '' : '<div class="ico" aria-hidden="true">' + silhouette(t.key) + '</div>';
+      return '<button class="tile' + (on ? ' on' : '') + '" data-type="' + t.key + '"' +
+        ' aria-pressed="' + (on ? 'true' : 'false') + '">' + ico +
         '<span class="t">' + t.label + '</span></button>';
     }).join('');
-    return '<h2>What are you shopping for?</h2>' +
-      '<p class="sub">Pick a body type — or keep it open and let your priorities decide.</p>' +
-      '<div class="tiles">' + tiles + '</div>';
+    return '<h2 tabindex="-1" data-fh>What are you shopping for?</h2>' +
+      '<p class="sub" id="q-help-0">Pick a body type — or keep it open and let your priorities decide.</p>' +
+      '<div class="tiles" role="group" aria-labelledby="q-help-0">' + tiles + '</div>';
   }
 
   function renderPriorityStep() {
     var tiles = VM.PRIORITIES.map(function (p) {
       var idx = state.priorities.indexOf(p.key);
-      var on = idx > -1 ? ' on' : '';
-      var rank = idx > -1 ? '<span class="rank">' + (idx + 1) + '</span>' : '';
-      return '<button class="tile' + on + '" data-pri="' + p.key + '">' + rank +
+      var on = idx > -1;
+      var rank = on ? '<span class="rank" aria-hidden="true">' + (idx + 1) + '</span>' : '';
+      var label = on ? p.label + ', priority ' + (idx + 1) + ' of your ' + state.priorities.length
+                     : p.label + ', ' + p.blurb;
+      return '<button class="tile' + (on ? ' on' : '') + '" data-pri="' + p.key + '"' +
+        ' aria-pressed="' + (on ? 'true' : 'false') + '" aria-label="' + label + '">' + rank +
         '<span class="t">' + p.label + '</span><span class="d">' + p.blurb + '</span></button>';
     }).join('');
-    return '<h2>What matters most?</h2>' +
-      '<p class="sub">Choose up to three, in order of importance. Your first pick counts the most.</p>' +
-      '<div class="tiles">' + tiles + '</div>';
+    return '<h2 tabindex="-1" data-fh>What matters most?</h2>' +
+      '<p class="sub" id="q-help-1">Choose up to three, in order of importance. Your first pick counts the most.</p>' +
+      '<div class="tiles" role="group" aria-labelledby="q-help-1">' + tiles + '</div>';
   }
 
   function seg(label, name, opts, current, fmt) {
+    var lid = 'seg-' + name;
     var btns = opts.map(function (o) {
-      var on = String(current) === String(o) ? ' on' : '';
-      return '<button class="' + on.trim() + '" data-seg="' + name + '" data-val="' + o + '">' + fmt(o) + '</button>';
+      var on = String(current) === String(o);
+      return '<button class="' + (on ? 'on' : '') + '" data-seg="' + name + '" data-val="' + o + '"' +
+        ' aria-pressed="' + (on ? 'true' : 'false') + '">' + fmt(o) + '</button>';
     }).join('');
-    return '<div class="field"><label>' + label + '</label><div class="seg">' + btns + '</div></div>';
+    return '<div class="field"><label id="' + lid + '">' + label + '</label>' +
+      '<div class="seg" role="group" aria-labelledby="' + lid + '">' + btns + '</div></div>';
   }
 
   function renderPrefStep() {
-    return '<h2>Narrow it down</h2>' +
+    return '<h2 tabindex="-1" data-fh>Narrow it down</h2>' +
       '<p class="sub">A few hard limits so we only match what actually fits.</p>' +
       seg('Budget', 'priceMax', VM.PREFS.priceMax, state.prefs.priceMax, priceLabel) +
       seg('Seating', 'seats', VM.PREFS.seats, state.prefs.seats, seatLabel) +
       seg('Drivetrain', 'drivetrain', VM.PREFS.drivetrain, state.prefs.drivetrain, dtLabel);
   }
 
+  function announceStep() {
+    announce('Step ' + (state.step + 1) + ' of ' + STEP_LABELS.length + ': ' + STEP_LABELS[state.step]);
+  }
+
   function wireWizard() {
     document.getElementById('back').addEventListener('click', function () {
+      focusIntent = { heading: true };
       if (state.step === 0) { state.screen = 'landing'; render(); }
-      else { state.step--; render(); }
+      else { state.step--; announceStep(); render(); }
     });
     document.getElementById('next').addEventListener('click', function () {
       if (!stepValid()) return;
       track(['type', 'priorities', 'prefs'][state.step],
         state.step === 0 ? { type: state.type } : state.step === 1 ? { priorities: state.priorities } : state.prefs);
-      if (state.step === STEP_LABELS.length - 1) { state.screen = 'results'; render(); }
-      else { state.step++; render(); }
+      focusIntent = { heading: true };
+      if (state.step === STEP_LABELS.length - 1) { state.screen = 'results'; state.resultsReady = false; render(); }
+      else { state.step++; announceStep(); render(); }
     });
-    // tile / seg clicks
+    // tile / seg clicks — keep focus on the control so keyboard users don't lose their place
     Array.prototype.forEach.call(app.querySelectorAll('[data-type]'), function (el) {
-      el.addEventListener('click', function () { state.type = el.getAttribute('data-type'); render(); });
+      el.addEventListener('click', function () {
+        var k = el.getAttribute('data-type');
+        state.type = k;
+        focusIntent = { sel: '[data-type="' + k + '"]' };
+        render();
+      });
     });
     Array.prototype.forEach.call(app.querySelectorAll('[data-pri]'), function (el) {
       el.addEventListener('click', function () {
         var k = el.getAttribute('data-pri'), i = state.priorities.indexOf(k);
         if (i > -1) state.priorities.splice(i, 1);
         else if (state.priorities.length < 3) state.priorities.push(k);
+        else announce('You can choose up to three priorities. Deselect one to change it.');
+        focusIntent = { sel: '[data-pri="' + k + '"]' };
         render();
       });
     });
@@ -166,6 +231,7 @@
       el.addEventListener('click', function () {
         var name = el.getAttribute('data-seg'), val = el.getAttribute('data-val');
         state.prefs[name] = (name === 'drivetrain') ? val : parseInt(val, 10);
+        focusIntent = { sel: '[data-seg="' + name + '"][data-val="' + val + '"]' };
         render();
       });
     });
@@ -173,6 +239,16 @@
 
   // ============ RESULTS ============
   function renderResults() {
+    // Brief, honest loading state before the reveal (skipped for reduced motion).
+    if (!state.resultsReady) {
+      app.innerHTML = '<section class="wiz"><div class="loading">' +
+        '<div class="spinner" aria-hidden="true"></div>' +
+        '<p>Matching your answers&hellip;</p></div></section>';
+      announce('Finding your match');
+      window.setTimeout(function () { state.resultsReady = true; render(); }, reduceMotion ? 0 : 620);
+      return;
+    }
+
     var out = VM.score.match(VM.VEHICLES, {
       type: state.type, priorities: state.priorities,
       priceMax: state.prefs.priceMax, seats: state.prefs.seats, drivetrain: state.prefs.drivetrain
@@ -180,7 +256,7 @@
     track('result', { top: out.results[0] && out.results[0].vehicle.id, relaxed: out.relaxed });
 
     var top = out.results[0], alts = out.results.slice(1);
-    if (!top) { app.innerHTML = '<section class="res-head"><h2>No matches</h2></section>'; return; }
+    if (!top) { app.innerHTML = '<section class="res-head"><h2 tabindex="-1" data-fh>No matches</h2></section>'; return; }
 
     var whyChips = top.why.map(function (w) { return '<span>' + priLabel(w) + '</span>'; }).join('');
     var v = top.vehicle;
@@ -212,20 +288,179 @@
         '</div>';
     }).join('') + '</div>' : '';
 
-    var note = out.relaxed ? '<div class="res-note">' + out.note + '</div>' : '';
+    var note = out.relaxed
+      ? '<p class="res-note">' + out.note +
+        ' <button type="button" class="widen" id="widen">Adjust your filters</button></p>'
+      : '';
 
     app.innerHTML =
-      '<section class="res-head"><div class="eyebrow">Based on your answers</div>' +
-      '<h2>We found your match</h2>' + note + '</section>' +
-      topHtml + altHtml +
+      '<section class="res-head' + (animate ? ' anim-rise' : '') + '">' +
+      '<div class="eyebrow">Based on your answers</div>' +
+      '<h2 tabindex="-1" data-fh>We found your match</h2>' + note + '</section>' +
+      '<div' + (animate ? ' class="anim-rise"' : '') + '>' + topHtml + altHtml + '</div>' +
       '<div class="res-foot"><button class="btn ghost" id="restart">Start over</button></div>';
 
+    announce('Your best match: ' + top.score + ' percent, ' + v.name +
+      (out.relaxed ? '. ' + out.note : ''));
+
     document.getElementById('restart').addEventListener('click', function () {
-      state = { screen: 'landing', step: 0, type: null, priorities: [], prefs: { priceMax: 100000, seats: 2, drivetrain: 'any' } };
+      state = freshState();
+      focusIntent = { heading: true };
+      render();
+    });
+    var widen = document.getElementById('widen');
+    if (widen) widen.addEventListener('click', function () {
+      // Jump back to the preferences step so the shopper can loosen the filters.
+      state.screen = 'wizard'; state.step = STEP_LABELS.length - 1; state.resultsReady = false;
+      focusIntent = { heading: true };
+      announceStep();
       render();
     });
     var q = document.getElementById('quote');
-    if (q) q.addEventListener('click', function () { alert('Lead capture form — coming in M3.'); });
+    if (q) q.addEventListener('click', function () {
+      openQuote(top.vehicle, alts.map(function (r) { return r.vehicle; }));
+    });
+
+    applyFocus();
+  }
+
+  // ============ QUOTE FORM (M3 — lead capture) ============
+  var modalHost = document.getElementById('vm-modal');
+  var lastTrigger = null;   // element focus returns to on close
+
+  function emailValid(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+
+  function openQuote(topVehicle, altVehicles) {
+    lastTrigger = document.activeElement;
+    var picks = [topVehicle].concat(altVehicles || []);
+    var opts = picks.map(function (v, i) {
+      return '<option value="' + v.name + '"' + (i === 0 ? ' selected' : '') + '>' +
+        v.name + (i === 0 ? ' — your best match' : '') + '</option>';
+    }).join('') + '<option value="Not sure yet">Not sure yet</option>';
+
+    modalHost.innerHTML =
+      '<div class="modal-backdrop" id="qbackdrop">' +
+      '<div class="modal" role="dialog" aria-modal="true" aria-labelledby="qtitle" aria-describedby="qsub">' +
+      '<button class="modal-x" id="qclose" type="button" aria-label="Close">&times;</button>' +
+      '<div class="modal-head"><div class="ey">Personalized quote</div>' +
+      '<h3 id="qtitle">Get your ' + topVehicle.name + ' quote</h3>' +
+      '<p id="qsub" class="modal-sub">Tell us where to send it. A specialist follows up with pricing and availability — no obligation.</p></div>' +
+      '<form id="qform" novalidate>' +
+      field('q-name', 'Full name', '<input id="q-name" name="name" type="text" autocomplete="name" required maxlength="80" placeholder="Jordan Rivera">') +
+      field('q-email', 'Email', '<input id="q-email" name="email" type="email" autocomplete="email" inputmode="email" required maxlength="120" placeholder="you@email.com">') +
+      field('q-vehicle', 'Vehicle of interest',
+        '<div class="select-wrap"><select id="q-vehicle" name="vehicle_interest">' + opts + '</select></div>') +
+      '<p class="form-error" id="q-formerror" role="alert" hidden></p>' +
+      '<button class="btn primary block" id="qsubmit" type="submit">Request my quote</button>' +
+      '<p class="privacy">We only use your details to follow up on this request. No spam, no resale.</p>' +
+      '</form></div></div>';
+
+    var backdrop = document.getElementById('qbackdrop');
+    var form = document.getElementById('qform');
+    var closeBtn = document.getElementById('qclose');
+
+    function close() {
+      modalHost.innerHTML = '';
+      document.removeEventListener('keydown', onKey);
+      if (lastTrigger && lastTrigger.focus) lastTrigger.focus();
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') { close(); return; }
+      if (e.key === 'Tab') trapTab(e, backdrop);
+    }
+    document.addEventListener('keydown', onKey);
+    closeBtn.addEventListener('click', close);
+    backdrop.addEventListener('mousedown', function (e) { if (e.target === backdrop) close(); });
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      submitQuote(form, topVehicle, close);
+    });
+
+    // focus the first field
+    var first = document.getElementById('q-name');
+    if (first) first.focus();
+    announce('Quote form opened.');
+  }
+
+  function trapTab(e, container) {
+    var f = container.querySelectorAll('button, input, select, textarea, a[href]');
+    f = Array.prototype.filter.call(f, function (el) { return !el.disabled && el.offsetParent !== null; });
+    if (!f.length) return;
+    var first = f[0], last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+
+  function submitQuote(form, topVehicle, close) {
+    var nameEl = form.querySelector('#q-name');
+    var emailEl = form.querySelector('#q-email');
+    var vehEl = form.querySelector('#q-vehicle');
+    var errEl = form.querySelector('#q-formerror');
+    var name = nameEl.value.trim(), email = emailEl.value.trim();
+
+    // ---- validation ----
+    setFieldError(nameEl, !name ? 'Enter your name.' : '');
+    setFieldError(emailEl, !email ? 'Enter your email.' : (!emailValid(email) ? 'Enter a valid email.' : ''));
+    var firstBad = form.querySelector('[aria-invalid="true"]');
+    if (firstBad) { firstBad.focus(); return; }
+    errEl.hidden = true;
+
+    var submitBtn = form.querySelector('#qsubmit');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending…';
+
+    VM.db.createLead({
+      name: name, email: email,
+      vehicle_interest: vehEl ? vehEl.value : topVehicle.name,
+      priorities: state.priorities,
+      session_id: sessionId
+    }).then(function () {
+      track('lead', { vehicle: vehEl ? vehEl.value : topVehicle.name });
+      showQuoteSuccess(name, vehEl ? vehEl.value : topVehicle.name, close);
+    }).catch(function (err) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Request my quote';
+      errEl.hidden = false;
+      errEl.textContent = 'Something went wrong sending your request. Please try again.';
+      if (window.console) console.warn('lead submit failed', err && err.message);
+      errEl.focus();
+    });
+  }
+
+  function showQuoteSuccess(name, vehicle, close) {
+    var dialog = modalHost.querySelector('.modal');
+    if (!dialog) return;
+    var first = (name.split(' ')[0] || name);
+    dialog.innerHTML =
+      '<button class="modal-x" id="qclose2" type="button" aria-label="Close">&times;</button>' +
+      '<div class="quote-done">' +
+      '<div class="check" aria-hidden="true"><svg viewBox="0 0 52 52" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 27l8 8 16-18"/></svg></div>' +
+      '<h3 tabindex="-1" data-qdone>Request sent, ' + escapeHtml(first) + '.</h3>' +
+      '<p>A specialist will reach out about the <b>' + escapeHtml(vehicle) + '</b>. Watch your inbox.</p>' +
+      (VM.db.live ? '' : '<p class="demo-tag">Demo mode — add Supabase keys in <code>supabase.js</code> to store real leads.</p>') +
+      '<button class="btn ghost" id="qdoneclose" type="button">Done</button>' +
+      '</div>';
+    announce('Your quote request was sent. A specialist will follow up.');
+    var done = dialog.querySelector('[data-qdone]'); if (done) done.focus();
+    dialog.querySelector('#qclose2').addEventListener('click', close);
+    dialog.querySelector('#qdoneclose').addEventListener('click', close);
+  }
+
+  function field(id, label, control) {
+    return '<div class="form-field"><label for="' + id + '">' + label + '</label>' + control +
+      '<span class="field-error" id="' + id + '-err" role="alert"></span></div>';
+  }
+  function setFieldError(el, msg) {
+    var err = document.getElementById(el.id + '-err');
+    if (msg) { el.setAttribute('aria-invalid', 'true'); el.setAttribute('aria-describedby', el.id + '-err');
+      if (err) err.textContent = msg; }
+    else { el.removeAttribute('aria-invalid'); if (err) err.textContent = ''; }
+  }
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
   }
 
   function specCell(k, v) { return '<div class="s"><span class="k">' + k + '</span><span class="v">' + v + '</span></div>'; }

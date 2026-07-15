@@ -50,29 +50,44 @@ separate personal "Motorpool" garage app, which lives in its own repo).
 - ✅ **M0 — Foundation:** dataset, scoring engine (+ tests), Supabase schema, branded shell.
 - ✅ **M1 — Core loop:** landing → 3-step wizard → results (match %, why-chips, specs,
   alternates, quote CTA stub). Verified desktop + mobile, zero overflow, no console errors.
+- ✅ **M2 — Polish (states + a11y):** step entrance motion (reduced-motion aware), results
+  loading spinner, styled fallback note with an "Adjust your filters" affordance, focus
+  management + `aria-live` announcements, `aria-pressed`/`role=group`/`role=progressbar`,
+  ≥44px tap targets, OG/Twitter + favicon + generated share image + PWA manifest.
+  Verified end-to-end (desktop + mobile, Back preserves selections, no overflow).
+- ✅ **M3 — Lead capture (code):** `supabase.js` insert-only REST client (demo-mode
+  fallback until keys are added), `track()` wired to `vm_events` at every step + result +
+  lead, and an accessible post-result quote modal (focus trap, Esc/backdrop close, focus
+  return, inline validation, success + error states, privacy note). Inserts to `vm_leads`.
+  **Owner action still open:** create the Supabase project, run `schema.sql`, paste the
+  Project URL + anon key into `supabase.js` to switch from demo to live.
 
 ---
 
 ## Roadmap
 
-### M2 — Polish (states + a11y)  ⟶ NEXT
-- [ ] Step transitions / motion (respect `prefers-reduced-motion`).
-- [ ] Loading state on results compute (skeleton or brief spinner).
-- [ ] Empty/edge states (surface the fallback note nicely; "widen your filters" affordance).
-- [ ] Accessibility: focus management on step change, `aria-live` announcements, full keyboard
-      nav for tiles/segments, roles, tap targets ≥44px.
-- [ ] Responsive polish pass (already responsive — tighten spacing, type scale).
-- [ ] Meta/OG/Twitter tags + favicon + social share image; optional PWA manifest.
-- [ ] Back-button preserves prior selections (state already persists in memory — verify on Back).
+### M2 — Polish (states + a11y)  ✅ DONE
+- [x] Step transitions / motion (`anim-rise`, only on nav; respects `prefers-reduced-motion`).
+- [x] Loading state on results compute (spinner, ~620ms; skipped under reduced motion).
+- [x] Empty/edge states (styled fallback note + "Adjust your filters" jumps back to prefs).
+- [x] Accessibility: heading focus on step change + control-focus retained on toggle,
+      `aria-live` announcements, `aria-pressed` tiles/segments, `role=group`/`progressbar`,
+      tap targets ≥44px, `:focus-visible` outlines. (Native buttons cover keyboard nav.)
+- [x] Responsive polish pass (topbar collapses tag/subtext on small phones — no wrap).
+- [x] Meta/OG/Twitter tags + inline SVG favicon + generated `og-image.png` + PWA manifest
+      (`manifest.webmanifest`, icons 192/512/512-maskable/180).
+- [x] Back-button preserves prior selections (verified type + priorities survive Back).
 
-### M3 — Lead capture
-- [ ] `supabase.js` client (project URL + anon key).
-- [ ] Post-result **quote form** (name, email, vehicle interest) → insert `vm_leads`.
-- [ ] Wire the `track()` stub in `app.js` → insert `vm_events` at each step + result.
-- [ ] Form validation, success/thank-you + error states, basic privacy note.
-- **Blocked on:** create Supabase project → run `schema.sql` → add keys.
+### M3 — Lead capture  ✅ DONE (code) · ⚠ awaiting keys
+- [x] `supabase.js` client — insert-only REST wrapper (no SDK), demo-mode fallback.
+- [x] Post-result **quote form** (name, email, vehicle interest) → insert `vm_leads`.
+      Accessible modal: focus trap, Esc/backdrop close, focus return, `aria-modal`.
+- [x] Wire the `track()` stub in `app.js` → insert `vm_events` at each step + result + lead.
+- [x] Form validation, success/thank-you + error states, privacy note.
+- **Blocked on (owner):** create Supabase project → run `schema.sql` → paste keys into
+      `supabase.js` (`SUPABASE_URL`, `SUPABASE_ANON_KEY`). Until then it runs in demo mode.
 
-### M4 — Dealer dashboard
+### M4 — Dealer dashboard  ⟶ NEXT
 - [ ] Gated view (Supabase auth — magic link or simple login).
 - [ ] Stat tiles: total sessions, leads, conversion %, most-selected type.
 - [ ] Charts: priority popularity, step funnel (from `vm_events`).

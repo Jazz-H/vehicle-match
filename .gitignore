@@ -1,0 +1,4 @@
+# Dev-only tooling (verification uses the pre-installed Chromium via playwright-core).
+# The app itself is a build-free static site — nothing here ships.
+node_modules/
+package-lock.json
