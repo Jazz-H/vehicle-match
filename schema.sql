@@ -37,6 +37,11 @@ drop policy if exists "anon insert leads" on public.vm_leads;
 create policy "anon insert leads" on public.vm_leads
   for insert to anon with check (true);
 
+-- Explicit table grants (belt-and-suspenders alongside the RLS policies above).
+grant usage on schema public to anon;
+grant insert on public.vm_events to anon;
+grant insert on public.vm_leads  to anon;
+
 -- Dashboard reads require a logged-in (authenticated) user.
 drop policy if exists "auth read events" on public.vm_events;
 create policy "auth read events" on public.vm_events
@@ -46,11 +51,15 @@ drop policy if exists "auth read leads" on public.vm_leads;
 create policy "auth read leads" on public.vm_leads
   for select to authenticated using (true);
 
--- Convenience aggregates for the dashboard (also readable only when authed via the base tables).
-create or replace view public.vm_type_popularity as
+-- Convenience aggregates for the dashboard. security_invoker makes each view
+-- run with the querying user's privileges, so the base-table RLS above still
+-- applies (a view would otherwise run as its definer and bypass RLS).
+create or replace view public.vm_type_popularity
+  with (security_invoker = true) as
   select choice->>'type' as type, count(*) as picks
   from public.vm_events where step = 'type' group by 1 order by 2 desc;
 
-create or replace view public.vm_funnel as
+create or replace view public.vm_funnel
+  with (security_invoker = true) as
   select step, count(distinct session_id) as sessions
   from public.vm_events group by step;

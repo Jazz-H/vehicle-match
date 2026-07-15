@@ -58,6 +58,82 @@
     return insert('vm_leads', lead);
   }
 
+  // ============ Dealer auth + authenticated reads (M4) ============
+  // The anon key is insert-only; reads require a logged-in (authenticated)
+  // Supabase user, whose access token we send as the Bearer while keeping the
+  // anon key as the apikey. Session is cached in localStorage and refreshed.
+  var AUTH = SUPABASE_URL.replace(/\/+$/, '') + '/auth/v1';
+  var REST = SUPABASE_URL.replace(/\/+$/, '') + '/rest/v1';
+  var SKEY = 'vm.dealer.session';
+
+  function saveSession(d) {
+    var s = {
+      access_token: d.access_token, refresh_token: d.refresh_token,
+      expires_at: Date.now() + (d.expires_in || 3600) * 1000,
+      email: (d.user && d.user.email) || (d.email) || ''
+    };
+    try { localStorage.setItem(SKEY, JSON.stringify(s)); } catch (e) {}
+    return s;
+  }
+  function readSession() {
+    try { return JSON.parse(localStorage.getItem(SKEY) || 'null'); } catch (e) { return null; }
+  }
+  function clearSession() { try { localStorage.removeItem(SKEY); } catch (e) {} }
+
+  function authPost(grant, body) {
+    return fetch(AUTH + '/token?grant_type=' + grant, {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    }).then(function (res) {
+      return res.json().then(function (j) {
+        if (!res.ok) throw new Error(j.error_description || j.msg || j.error || ('Auth ' + res.status));
+        return j;
+      });
+    });
+  }
+
+  function signIn(email, password) {
+    return authPost('password', { email: email, password: password }).then(saveSession);
+  }
+  function signOut() {
+    var s = readSession();
+    clearSession();
+    if (s && s.access_token) {
+      fetch(AUTH + '/logout', { method: 'POST',
+        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + s.access_token } })
+        .catch(function () {});
+    }
+    return Promise.resolve();
+  }
+  // Resolve a currently-valid access token, refreshing if it's near expiry.
+  function getToken() {
+    var s = readSession();
+    if (!s || !s.access_token) return Promise.reject(new Error('not signed in'));
+    if (s.expires_at - Date.now() > 60000) return Promise.resolve(s.access_token);
+    return authPost('refresh_token', { refresh_token: s.refresh_token })
+      .then(function (d) { return saveSession(d).access_token; })
+      .catch(function (e) { clearSession(); throw new Error('session expired'); });
+  }
+
+  // Authenticated GET against a PostgREST path (e.g. "vm_leads?select=*&order=created_at.desc").
+  function select(pathAndQuery) {
+    return getToken().then(function (token) {
+      return fetch(REST + '/' + pathAndQuery, {
+        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + token }
+      }).then(function (res) {
+        return res.text().then(function (t) {
+          if (!res.ok) throw new Error('Supabase ' + res.status + ': ' + (t || res.statusText));
+          return t ? JSON.parse(t) : [];
+        });
+      });
+    });
+  }
+
   window.VM = window.VM || {};
-  window.VM.db = { live: LIVE, insert: insert, track: track, createLead: createLead };
+  window.VM.db = { live: LIVE, insert: insert, track: track, createLead: createLead, select: select };
+  window.VM.auth = {
+    signIn: signIn, signOut: signOut, getToken: getToken,
+    session: readSession, isLive: LIVE
+  };
 })();
