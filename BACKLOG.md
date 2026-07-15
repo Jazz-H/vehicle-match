@@ -55,6 +55,11 @@ separate personal "Motorpool" garage app, which lives in its own repo).
   management + `aria-live` announcements, `aria-pressed`/`role=group`/`role=progressbar`,
   ≥44px tap targets, OG/Twitter + favicon + generated share image + PWA manifest.
   Verified end-to-end (desktop + mobile, Back preserves selections, no overflow).
+- ✅ **Landing redesign:** replaced the centered mobile-stack landing with a responsive
+  composition — editorial stack + value strip on mobile; a framed asymmetric split on
+  desktop (headline/CTA left, live sample-match card right, instrument-panel frame with
+  corner ticks + edge metadata, value tiles across the bottom). Uses the full desktop
+  canvas; verified no overflow (desktop + mobile) and Start still enters the wizard.
 - ✅ **M3 — Lead capture (code):** `supabase.js` insert-only REST client (demo-mode
   fallback until keys are added), `track()` wired to `vm_events` at every step + result +
   lead, and an accessible post-result quote modal (focus trap, Esc/backdrop close, focus
