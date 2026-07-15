@@ -60,12 +60,11 @@ separate personal "Motorpool" garage app, which lives in its own repo).
   desktop (headline/CTA left, live sample-match card right, instrument-panel frame with
   corner ticks + edge metadata, value tiles across the bottom). Uses the full desktop
   canvas; verified no overflow (desktop + mobile) and Start still enters the wizard.
-- ✅ **M3 — Lead capture (code):** `supabase.js` insert-only REST client (demo-mode
-  fallback until keys are added), `track()` wired to `vm_events` at every step + result +
-  lead, and an accessible post-result quote modal (focus trap, Esc/backdrop close, focus
-  return, inline validation, success + error states, privacy note). Inserts to `vm_leads`.
-  **Owner action still open:** create the Supabase project, run `schema.sql`, paste the
-  Project URL + anon key into `supabase.js` to switch from demo to live.
+- ✅ **M3 — Lead capture (LIVE):** `supabase.js` insert-only REST client, `track()` wired
+  to `vm_events` at every step + result + lead, and an accessible post-result quote modal
+  (focus trap, Esc/backdrop close, focus return, inline validation, success + error states,
+  privacy note). Inserts to `vm_leads`. **Connected to Supabase** (project
+  `umnuufbbhdfwvbcsnfpe`); demo-mode fallback remains if keys are ever removed.
 
 ---
 
@@ -83,14 +82,16 @@ separate personal "Motorpool" garage app, which lives in its own repo).
       (`manifest.webmanifest`, icons 192/512/512-maskable/180).
 - [x] Back-button preserves prior selections (verified type + priorities survive Back).
 
-### M3 — Lead capture  ✅ DONE (code) · ⚠ awaiting keys
+### M3 — Lead capture  ✅ DONE · LIVE
 - [x] `supabase.js` client — insert-only REST wrapper (no SDK), demo-mode fallback.
 - [x] Post-result **quote form** (name, email, vehicle interest) → insert `vm_leads`.
       Accessible modal: focus trap, Esc/backdrop close, focus return, `aria-modal`.
 - [x] Wire the `track()` stub in `app.js` → insert `vm_events` at each step + result + lead.
 - [x] Form validation, success/thank-you + error states, privacy note.
-- **Blocked on (owner):** create Supabase project → run `schema.sql` → paste keys into
-      `supabase.js` (`SUPABASE_URL`, `SUPABASE_ANON_KEY`). Until then it runs in demo mode.
+- [x] **Connected to Supabase** — project created, `schema.sql` run, `SUPABASE_URL` +
+      `SUPABASE_ANON_KEY` set in `supabase.js`. Client reports `live: true`.
+      (Live end-to-end insert can't be exercised from the sandbox — Supabase is off the
+      session's egress allowlist — so verify from the deployed site / a real browser.)
 
 ### M4 — Dealer dashboard  ⟶ NEXT
 - [ ] Gated view (Supabase auth — magic link or simple login).

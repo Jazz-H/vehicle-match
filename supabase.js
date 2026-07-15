@@ -7,8 +7,8 @@
 (function () {
   // ---- CONFIG — replace with your Supabase project values ----
   // Settings → API: "Project URL" and the public "anon" key.
-  var SUPABASE_URL = 'https://YOUR-PROJECT.supabase.co';
-  var SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+  var SUPABASE_URL = 'https://umnuufbbhdfwvbcsnfpe.supabase.co';
+  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtbnV1ZmJiaGRmd3ZiY3NuZnBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwNzM0NTAsImV4cCI6MjA5OTY0OTQ1MH0.dusTuBnTNFoizidiCPx20mhOveHyW-0JU5ZuxMIY97g';
   // ------------------------------------------------------------
 
   function isPlaceholder(v) {
