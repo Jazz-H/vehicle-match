@@ -93,14 +93,49 @@
   }
 
   function renderLanding() {
+    // Editorial stack on mobile → framed split (headline + live sample match) on desktop.
+    var sampleCard =
+      '<div class="payoff" aria-hidden="true"><span class="plabel">Sample match</span>' +
+      '<div class="samplecard">' +
+      '<div class="sc-flag">Your best match</div>' +
+      '<div class="sc-visual">' + silhouette('suv') + '</div>' +
+      '<div class="sc-info"><div class="sc-ey">2024 &middot; SUV</div><h3>Toyota RAV4</h3>' +
+      '<div class="sc-badge"><b>94%</b><span>match</span></div>' +
+      '<div class="sc-why"><span>Budget</span><span>Efficiency</span><span>Space</span></div></div>' +
+      '<div class="sc-specs">' +
+      '<div class="s"><span class="k">Price</span><span class="v">$29,000</span></div>' +
+      '<div class="s"><span class="k">Efficiency</span><span class="v">30 mpg</span></div>' +
+      '<div class="s"><span class="k">Drivetrain</span><span class="v">AWD</span></div>' +
+      '</div></div></div>';
+
+    var vstrip =
+      '<div class="vstrip">' +
+      '<div class="vcell"><div class="vn">01</div><h3>See the why</h3>' +
+      '<p>Transparent scoring — every match explains exactly which of your priorities it fits.</p></div>' +
+      '<div class="vcell"><div class="vn">02</div><h3>20 curated vehicles</h3>' +
+      '<p>A hand-picked lineup across SUVs, sedans, trucks, coupes and EVs — no noise.</p></div>' +
+      '<div class="vcell"><div class="vn">03</div><h3>60-second match</h3>' +
+      '<p>Three questions, one clear result, plus alternates worth a look.</p></div>' +
+      '</div>';
+
     app.innerHTML =
-      '<section class="land' + (animate ? ' anim-rise' : '') + '">' +
-      '<div class="eyebrow">Interactive vehicle finder</div>' +
+      '<section class="landing' + (animate ? ' anim-rise' : '') + '">' +
+      '<div class="frame">' +
+      '<span class="tick tl"></span><span class="tick tr"></span><span class="tick bl"></span><span class="tick br"></span>' +
+      '<span class="meta mtl">MTRPL&mdash;VM // v1.0</span><span class="meta mtr">Rec. 2024</span>' +
+      '<div class="hero">' +
+      '<div class="lead">' +
+      '<div class="kicker"><span class="eyebrow">Interactive vehicle finder</span>' +
+      '<span class="kline"></span><span class="kidx">No. 01 &mdash; The match</span></div>' +
       '<h1 tabindex="-1" data-fh>Find your <span class="rev">match.</span></h1>' +
-      '<p>Answer three quick questions about how you drive and what matters — get matched to the right vehicle, with the reasons why.</p>' +
-      '<div class="steps" aria-hidden="true"><span><b>1</b>&nbsp; Type</span><span><b>2</b>&nbsp; Priorities</span><span><b>3</b>&nbsp; Preferences</span><span><b>&#10003;</b>&nbsp; Your match</span></div>' +
-      '<button class="btn primary" id="start">Start &rarr;</button>' +
-      '</section>';
+      '<p class="sub">Answer three quick questions about how you drive and what matters — get matched to the right vehicle, with the reasons why.</p>' +
+      '<div class="cta-row"><button class="btn primary" id="start">Start &rarr;</button>' +
+      '<span class="cta-note">Takes ~60 seconds</span></div>' +
+      '</div>' +
+      sampleCard +
+      '</div>' +
+      vstrip +
+      '</div></section>';
     document.getElementById('start').addEventListener('click', function () {
       state.screen = 'wizard'; state.step = 0;
       focusIntent = { heading: true };
